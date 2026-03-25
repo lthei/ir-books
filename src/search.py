@@ -39,16 +39,16 @@ bm25 = BM25Okapi(tokenized_corpus)
 
 # --- queries ---
 queries = [
-    "dystopian society future totalitarian",
-    "romance love forbidden relationship",
-    "mystery detective murder investigation",
-    "fantasy magic epic quest",
-    "coming of age young adult identity",
-    "historical fiction war world",
-    "science fiction space exploration aliens",
-    "horror supernatural thriller suspense",
-    "biography memoir personal journey",
-    "philosophy meaning life human nature",
+    "dystopian society future",
+    "romance love forbidden",
+    "mystery detective murder",
+    "fantasy magic dragon",
+    "coming of age young adult",
+    "historical fiction war",
+    "science fiction aliens",
+    "horror supernatural thriller",
+    "biography memoir personal",
+    "philosophy meaning life",
 ]
 
 for query in queries:
