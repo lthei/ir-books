@@ -1,6 +1,7 @@
 import json
 import sys
 import os
+import numpy as np
 sys.path.insert(0, os.path.dirname(__file__))
 
 from rank_bm25 import BM25Okapi
@@ -45,9 +46,18 @@ bm25 = BM25Okapi(tokenized_corpus)
 # model
 model = SentenceTransformer("all-MiniLM-L6-v2")
 
-# document encoding
-doc_texts = [doc["text"] for doc in docs]
-doc_embeddings = model.encode(doc_texts, convert_to_numpy=True, show_progress_bar=True)
+# document encoding — load from cache if available, otherwise encode and save
+EMBEDDINGS_CACHE = "data/doc_embeddings.npy"
+
+if os.path.exists(EMBEDDINGS_CACHE):
+    print("Loading embeddings from cache...")
+    doc_embeddings = np.load(EMBEDDINGS_CACHE)
+else:
+    print("Encoding documents (this may take a while)...")
+    doc_texts = [doc["text"] for doc in docs]
+    doc_embeddings = model.encode(doc_texts, convert_to_numpy=True, show_progress_bar=True)
+    np.save(EMBEDDINGS_CACHE, doc_embeddings)
+    print(f"Saved embeddings to {EMBEDDINGS_CACHE}")
 
 # --- queries ---
 queries = [

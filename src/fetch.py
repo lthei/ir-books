@@ -5,7 +5,8 @@ import ast
 import kagglehub
 
 
-def load_books(max_results=500):
+# DELETE CACHE doc_embeddings IF NUMBER OF BOOKS IS ADAPTED (otherwise wrong encoding)
+def load_books(max_results=2000):
     dataset_path = kagglehub.dataset_download("arnabchaki/goodreads-best-books-ever")
 
     csv_files = [f for f in os.listdir(dataset_path) if f.endswith(".csv")]
@@ -70,7 +71,7 @@ def load_books(max_results=500):
 
 
 if __name__ == "__main__":
-    books = load_books(max_results=500)
+    books = load_books(max_results=2000)
     with open("data/goodreads_books.json", "w", encoding="utf-8") as f:
         json.dump(books, f, ensure_ascii=False, indent=2)
     print("Saved to data/goodreads_books.json")
