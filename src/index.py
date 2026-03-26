@@ -24,8 +24,12 @@ def build_corpus(books):
             "authors":     b["authors"],
             "year":        b["year"],
             "genres":      b["genres"],
-            "rating":      b["rating"],
-            "text":        b["title"] + " " + b["title"] + " " + b["description"]
+            "text": (      b["title"] + " " + 
+                            " ".join(b["authors"]) + " " + 
+                            " ".join(b["genres"]) + " " +  
+                            " ".join(b["genres"]) + " " +
+                             b["description"]
+)
         })
     return docs
 

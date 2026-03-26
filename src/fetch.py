@@ -2,11 +2,11 @@ import pandas as pd
 import json
 import os
 import ast
+import re
 import kagglehub
 
 
-# DELETE CACHE doc_embeddings IF NUMBER OF BOOKS IS ADAPTED (otherwise wrong encoding)
-def load_books(max_results=2000):
+def load_books(max_results=500):
     dataset_path = kagglehub.dataset_download("arnabchaki/goodreads-best-books-ever")
 
     csv_files = [f for f in os.listdir(dataset_path) if f.endswith(".csv")]
@@ -39,12 +39,10 @@ def load_books(max_results=2000):
 
     books = []
     for _, row in df.iterrows():
-        # extract 4-digit year from strings like "October 16th 2003"
-        year = ""
-        for part in str(row.get("year", "")).split():
-            if part.isdigit() and len(part) == 4:
-                year = part
-                break
+        # extract 4-digit year from any date format e.g. "10/16/2003" or "October 16th 2003"
+        raw_year = str(row.get("year", ""))
+        match = re.search(r"\b(1\d{3}|20\d{2})\b", raw_year)
+        year = match.group(1) if match else ""
 
         # genres and authors may be stringified Python lists
         def parse_list(val):
