@@ -1,5 +1,7 @@
 IR system for books using the Kaggle "Goodreads Best Books Ever" dataset.
 
+----
+
 Evaluation ground-truth books for ten given queries:
 
 "dystopian society future": Brave New World, Fahrenheit 451
