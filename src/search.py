@@ -34,7 +34,7 @@ def semantic_search(query, top_k=5):
     return [docs[i] for i in top_results]
 
 
-# --- setup ---
+# setup
 books = load_books()
 docs = build_corpus(books)
 inverted_index, document_corpus = build_inverted_index(docs)

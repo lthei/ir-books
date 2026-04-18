@@ -13,7 +13,7 @@ def load_books(path="data/goodreads_books.json"):
         return json.load(f)
 
 
-# title is repeated twice to give it more weight than the description
+# genre is repeated twice to give it more weight than the description
 def build_corpus(books):
     docs = []
     for b in books:
