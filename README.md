@@ -6,7 +6,7 @@ Evaluation ground-truth books for ten given queries:
 
 "dystopian society future": Brave New World, Fahrenheit 451
 
-"romance love forbidden": Romeo and Juliet, Wuthering Heights
+"romance love forbidden": Romeo and Juliet, Twilight
 
 "mystery detective murder": Murder on the Orient Express, The Girl with the Dragon Tattoo
 
