@@ -1,4 +1,6 @@
-ir-books — Goodreads Book Search Engine
+**ir-books - Goodreads Book Search Engine**
+
+
 A small information retrieval project built around the Goodreads Best Books Ever dataset. It supports three search methods — Boolean, BM25, and semantic search — and evaluates them using nDCG.
 
 
