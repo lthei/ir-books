@@ -1,94 +1,113 @@
-import json
-import sys
-import os
 import numpy as np
-sys.path.insert(0, os.path.dirname(__file__))
-
 from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, util
+
 from preprocess import simple_tokenize
 from index import load_books, build_corpus, build_inverted_index
+from config import EMBEDDINGS_NPY
 
 
-def boolean_search(query, index):
-    query_tokens = simple_tokenize(query)
-    if not query_tokens:
-        return []
+class BookSearchEngine:
+    """
+    Wraps all three search methods (Boolean, BM25, semantic) in a class
+    because they all share the same expensive setup: loading the corpus,
+    building the index, loading the model, and encoding the documents.
+    Using a class means we do that setup once in __init__ and reuse it
+    across all three methods, rather than rebuilding everything each time
+    or relying on global variables.
+    """
 
-    results = set(index.get(query_tokens[0], []))
-    for token in query_tokens[1:]:
-        results = results.intersection(set(index.get(token, [])))
+    def __init__(self):
+        # load and index books
+        books = load_books()
+        self.docs = build_corpus(books)
+        self.inverted_index, self.document_corpus = build_inverted_index(self.docs)
 
-    return list(results)
+        # BM25 index
+        tokenized_corpus = [simple_tokenize(doc["text"]) for doc in self.docs]
+        self.bm25 = BM25Okapi(tokenized_corpus)
+
+        # load the sentence transformer model
+        self.model = SentenceTransformer("all-MiniLM-L6-v2")
+
+        # encode all documents — load from cache if available to save time
+        if EMBEDDINGS_NPY.exists():
+            print("Loading embeddings from cache...")
+            self.doc_embeddings = np.load(EMBEDDINGS_NPY)
+        else:
+            print("Encoding documents (this may take a while)...")
+            doc_texts = [doc["text"] for doc in self.docs]
+            self.doc_embeddings = self.model.encode(
+                doc_texts, convert_to_numpy=True, show_progress_bar=True
+            )
+            EMBEDDINGS_NPY.parent.mkdir(parents=True, exist_ok=True)
+            np.save(EMBEDDINGS_NPY, self.doc_embeddings)
+            print(f"Saved embeddings to {EMBEDDINGS_NPY}")
+
+    def boolean_search(self, query):
+        """AND-Boolean search over the inverted index."""
+        query_tokens = simple_tokenize(query)
+        if not query_tokens:
+            return []
+
+        results = set(self.inverted_index.get(query_tokens[0], []))
+        for token in query_tokens[1:]:
+            results &= set(self.inverted_index.get(token, []))
+
+        return [self.document_corpus[doc_id] for doc_id in results]
+
+    def bm25_search(self, query, n=5):
+        """Return the top-n BM25-ranked results for the given query."""
+        tokenized_query = simple_tokenize(query)
+        if not tokenized_query:
+            return []
+        return self.bm25.get_top_n(tokenized_query, self.docs, n=n)
+
+    def semantic_search(self, query, top_k=5):
+        """Return the top-k semantically similar results for the given query."""
+        query_embedding = self.model.encode(query, convert_to_tensor=True)
+        scores = util.cos_sim(query_embedding, self.doc_embeddings)[0]
+        top_indices = scores.topk(k=top_k).indices
+        return [self.docs[i] for i in top_indices]
 
 
-def bm25_search(query, n=5):
-    tokenized_query = simple_tokenize(query)
-    return bm25.get_top_n(tokenized_query, docs, n=n)
+def _format_result(rank, doc):
+    authors = ", ".join(doc["authors"]) if doc["authors"] else "Unknown"
+    year = f" ({doc['year']})" if doc["year"] else ""
+    print(f"  Rank {rank}: {doc['title']} by {authors}{year}")
+    print(f"           {doc['description'][:100]}...")
 
 
-def semantic_search(query, top_k=5):
-    query_embedding = model.encode(query, convert_to_tensor=True)
-    scores = util.cos_sim(query_embedding, doc_embeddings)[0]
-    top_results = scores.topk(k=top_k).indices
-    return [docs[i] for i in top_results]
+if __name__ == "__main__":
+    engine = BookSearchEngine()
 
+    queries = [
+        "dystopian society future",
+        "romance love forbidden",
+        "mystery detective murder",
+        "fantasy magic dragon",
+        "coming of age young adult",
+        "historical fiction war",
+        "science fiction aliens",
+        "horror supernatural thriller",
+        "biography memoir personal",
+        "philosophy meaning life",
+    ]
 
-# setup
-books = load_books()
-docs = build_corpus(books)
-inverted_index, document_corpus = build_inverted_index(docs)
+    for query in queries:
+        print(f"\n{'='*60}")
+        print(f"> {query}")
 
-# BM25 index
-tokenized_corpus = [simple_tokenize(doc["text"]) for doc in docs]
-bm25 = BM25Okapi(tokenized_corpus)
+        print("\n  BM25 Search:")
+        for i, res in enumerate(engine.bm25_search(query, n=5), start=1):
+            _format_result(i, res)
 
-# model
-model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("\n  Semantic Search:")
+        for i, res in enumerate(engine.semantic_search(query, top_k=5), start=1):
+            _format_result(i, res)
 
-# document encoding — load from cache if available, otherwise encode and save
-EMBEDDINGS_CACHE = "data/doc_embeddings.npy"
-
-if os.path.exists(EMBEDDINGS_CACHE):
-    print("Loading embeddings from cache...")
-    doc_embeddings = np.load(EMBEDDINGS_CACHE)
-else:
-    print("Encoding documents (this may take a while)...")
-    doc_texts = [doc["text"] for doc in docs]
-    doc_embeddings = model.encode(doc_texts, convert_to_numpy=True, show_progress_bar=True)
-    np.save(EMBEDDINGS_CACHE, doc_embeddings)
-    print(f"Saved embeddings to {EMBEDDINGS_CACHE}")
-
-# --- queries ---
-queries = [
-    "dystopian society future",
-    "romance love forbidden",
-    "mystery detective murder",
-    "fantasy magic dragon",
-    "coming of age young adult",
-    "historical fiction war",
-    "science fiction aliens",
-    "horror supernatural thriller",
-    "biography memoir personal",
-    "philosophy meaning life",
-]
-
-for query in queries:
-    print(f"\n> {query}")
-
-    print("\nBM25 Search:")
-    bm25_results = bm25_search(query, n=5)
-    for i, res in enumerate(bm25_results):
-        authors = ", ".join(res["authors"]) if res["authors"] else "Unknown"
-        print(f"  Rank {i+1}: {res['title']} by {authors} ({res['year']})")
-        print(f"           {res['description'][:100]}...")
-
-    print("\nSemantic Search:")
-    semantic_results = semantic_search(query, top_k=5)
-    for i, res in enumerate(semantic_results):
-        authors = ", ".join(res["authors"]) if res["authors"] else "Unknown"
-        print(f"  Rank {i+1}: {res['title']} by {authors} ({res['year']})")
-        print(f"           {res['description'][:100]}...")
-
-    bool_hits = boolean_search(query, inverted_index)
-    print(f"\n  Boolean hits: {len(bool_hits)}")
+        bool_hits = engine.boolean_search(query)
+        if bool_hits:
+            print(f"\n  Boolean hits: {len(bool_hits)}")
+        else:
+            print("\n  Boolean hits: 0 (no document contains all query terms)")

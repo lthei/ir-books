@@ -7,8 +7,7 @@ from nltk.corpus import stopwords
 STOPWORDS = set(stopwords.words("english"))
 
 
-# adapted from the lab notebook
-def simple_tokenize(text):
+def simple_tokenize(text): # Adapted from the lab notebook
     text = text.lower()
     text = re.sub(r"[^a-z\s]", " ", text)
     tokens = text.split()
@@ -17,4 +16,5 @@ def simple_tokenize(text):
 
 
 if __name__ == "__main__":
-    print(simple_tokenize("Attention mechanisms have revolutionized natural language processing tasks."))
+    sample = "Attention mechanisms have revolutionized natural language processing tasks."
+    print(simple_tokenize(sample))
