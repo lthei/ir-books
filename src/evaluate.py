@@ -17,7 +17,7 @@ GROUND_TRUTH = {
 
 # manual relevance scores for the top-5 results of each query and method
 # 2 = highly relevant, 1 = somewhat relevant, 0 = not relevant
-# ground-truth matches are auto-scored as 2, so only the rest needs to be judged
+# ground-truth matches are auto-scored as 2, so you only need to judge the rest
 # run the file once first to see which titles were retrieved, then fill these in
 MANUAL_SCORES = {
     "dystopian society future":      {"bm25": [2, 2, 1, 0, 1],  "semantic": [1, 2, 0, 1, 1]},
@@ -31,6 +31,7 @@ MANUAL_SCORES = {
     "biography memoir personal":     {"bm25": [1, 1, 1, 0, 1],  "semantic": [1, 1, 1, 1, 0]},
     "philosophy meaning life":       {"bm25": [2, 2, 1, 0, 1],  "semantic": [1, 1, 2, 2, 1]},
 }
+
 
 def dcg(scores):
     """Compute DCG for a ranked list of relevance scores."""
@@ -70,12 +71,26 @@ def print_results_for_grading(engine, n=5):
                 print(f"    rank {i}: {doc['title']} {label}")
 
 
+def precision_at_k(results, gt_titles, k):
+    """Fraction of the top-k results that are ground-truth books."""
+    hits = sum(1 for doc in results[:k] if is_ground_truth(doc["title"], gt_titles))
+    return hits / k
+
+
+def recall_at_k(results, gt_titles, k):
+    """Fraction of ground-truth books that appear in the top-k results."""
+    hits = sum(1 for doc in results[:k] if is_ground_truth(doc["title"], gt_titles))
+    return hits / len(gt_titles)
+
+
 def evaluate(engine, n=5):
-    """Compute nDCG@5 for BM25 and semantic search across all queries."""
-    all_scores = {"bm25": [], "semantic": []}
+    """Compute nDCG@5, Precision@5, and Recall@5 for BM25 and semantic search across all queries."""
+    all_ndcg      = {"bm25": [], "semantic": []}
+    all_precision = {"bm25": [], "semantic": []}
+    all_recall    = {"bm25": [], "semantic": []}
 
     print("\n" + "=" * 60)
-    print("nDCG EVALUATION RESULTS")
+    print("EVALUATION RESULTS")
     print("=" * 60)
 
     for query, gt_titles in GROUND_TRUTH.items():
@@ -95,14 +110,25 @@ def evaluate(engine, n=5):
                 for i, doc in enumerate(results)
             ]
 
-            score = ndcg(scores)
-            all_scores[method].append(score)
-            print(f"  {method:8s} nDCG@{n}: {score:.4f}  (scores: {scores})")
+            ndcg_score = ndcg(scores)
+            p_score    = precision_at_k(results, gt_titles, k=n)
+            r_score    = recall_at_k(results, gt_titles, k=n)
+
+            all_ndcg[method].append(ndcg_score)
+            all_precision[method].append(p_score)
+            all_recall[method].append(r_score)
+
+            print(f"  {method:8s}  nDCG@{n}: {ndcg_score:.4f}  "
+                  f"P@{n}: {p_score:.4f}  R@{n}: {r_score:.4f}  "
+                  f"(scores: {scores})")
 
     print("\n" + "-" * 60)
     for method in ["bm25", "semantic"]:
-        if all_scores[method]:
-            print(f"  mean nDCG@{n}  {method:8s}: {np.mean(all_scores[method]):.4f}")
+        if all_ndcg[method]:
+            print(f"  {method:8s}  "
+                  f"mean nDCG@{n}: {np.mean(all_ndcg[method]):.4f}  "
+                  f"mean P@{n}: {np.mean(all_precision[method]):.4f}  "
+                  f"mean R@{n}: {np.mean(all_recall[method]):.4f}")
     print("-" * 60)
 
 
