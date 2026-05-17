@@ -3,8 +3,8 @@ from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, util
 
 from preprocess import simple_tokenize
-from index import load_books, build_corpus, build_inverted_index
-from config import EMBEDDINGS_NPY
+from index import load_books, build_corpus, build_inverted_index, save_index, load_index
+from config import EMBEDDINGS_NPY, INDEX_PICKLE
 
 
 class BookSearchEngine:
@@ -18,10 +18,17 @@ class BookSearchEngine:
     """
 
     def __init__(self):
-        # load and index books
+        # load books and build corpus
         books = load_books()
         self.docs = build_corpus(books)
-        self.inverted_index, self.document_corpus = build_inverted_index(self.docs)
+
+        # load inverted index from cache if available, otherwise build and save
+        if INDEX_PICKLE.exists():
+            print("Loading index from cache...")
+            self.inverted_index, self.document_corpus = load_index()
+        else:
+            self.inverted_index, self.document_corpus = build_inverted_index(self.docs)
+            save_index(self.inverted_index, self.document_corpus)
 
         # BM25 index
         tokenized_corpus = [simple_tokenize(doc["text"]) for doc in self.docs]
