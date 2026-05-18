@@ -7,7 +7,9 @@ from nltk.corpus import stopwords
 STOPWORDS = set(stopwords.words("english"))
 
 
-def simple_tokenize(text): # Adapted from the lab notebook
+def simple_tokenize(text):
+    """Lowercase, strip non-alpha characters, and remove stopwords and short tokens."""
+    # adapted from the lab notebook
     text = text.lower()
     text = re.sub(r"[^a-z\s]", " ", text)
     tokens = text.split()

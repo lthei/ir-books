@@ -1,24 +1,25 @@
 import numpy as np
 from search import BookSearchEngine
 
-# two ground-truth books per query, automatically scored as 2 (highly relevant)
+# ground-truth book IDs for each query, scored as 2 (highly relevant)
+# run lookup_ids.py to find the correct IDs, then fill them in here
 GROUND_TRUTH = {
-    "dystopian society future":      ["Brave New World", "Fahrenheit 451"],
-    "romance love forbidden":        ["Romeo and Juliet", "Twilight"],
-    "mystery detective murder":      ["Murder on the Orient Express", "The Girl with the Dragon Tattoo"],
-    "fantasy magic dragon":          ["Eragon", "A Song of Ice and Fire"],
-    "coming of age young adult":     ["The Perks of Being a Wallflower", "The Fault in Our Stars"],
-    "historical fiction war":        ["The Book Thief", "All the Light We Cannot See"],
-    "science fiction aliens":        ["The Hitchhiker's Guide to the Galaxy", "The War of the Worlds"],
-    "horror supernatural thriller":  ["The Shining", "The Exorcist"],
-    "biography memoir personal":     ["The Diary of a Young Girl", "Long Walk to Freedom"],
-    "philosophy meaning life":       ["The Alchemist", "Man's Search for Meaning"],
+    "dystopian society future":      ["9.78006E+12", "B0064CPN7I"],  # Brave New World, Fahrenheit 451
+    "romance love forbidden":        ["9.78074E+12", "9.78006E+12"],  # Romeo and Juliet, Twilight
+    "mystery detective murder":      ["9.78001E+12", "1E+13"],  # Murder on the Orient Express, The Girl with the Dragon Tattoo
+    "fantasy magic dragon":          ["9.78038E+12", "9.78178E+12"],  # Eragon, A Song of Ice and Fire
+    "coming of age young adult":     ["1E+13", "1E+13"],  # The Perks of Being a Wallflower, The Fault in Our Stars
+    "historical fiction war":        ["9.78038E+12", "9.78148E+12"],  # The Book Thief, All the Light We Cannot See
+    "science fiction aliens":        ["1E+13", "9.78038E+12"],  # The Hitchhiker's Guide to the Galaxy, The War of the Worlds
+    "horror supernatural thriller":  ["9.78045E+12", "9.78006E+12"],  # The Shining, The Exorcist
+    "biography memoir personal":     ["1E+13", "9.78032E+12"],  # The Diary of a Young Girl, Long Walk to Freedom
+    "philosophy meaning life":       ["9.78006E+12", "9.78081E+12"],  # The Alchemist, Man's Search for Meaning
 }
 
 # manual relevance scores for the top-5 results of each query and method
 # 2 = highly relevant, 1 = somewhat relevant, 0 = not relevant
-# ground-truth matches are auto-scored as 2, so you only need to judge the rest
-# run the file once first to see which titles were retrieved, then fill these in
+# ground-truth books are auto-scored as 2, so you only need to judge the rest
+# run this file once first to see the retrieved titles, then fill these in
 MANUAL_SCORES = {
     "dystopian society future":      {"bm25": [2, 2, 1, 0, 1],  "semantic": [1, 2, 0, 1, 1]},
     "romance love forbidden":        {"bm25": [1, 0, 0, 1, 1],  "semantic": [1, 0, 1, 1, 1]},
@@ -47,10 +48,21 @@ def ndcg(scores):
     return dcg(scores) / ideal_dcg
 
 
-def is_ground_truth(title, gt_titles):
-    """Case-insensitive substring check against the ground-truth titles."""
-    title_lower = title.lower()
-    return any(gt.lower() in title_lower or title_lower in gt.lower() for gt in gt_titles)
+def is_ground_truth(doc, gt_ids):
+    """Check if a retrieved doc matches any ground-truth ID exactly."""
+    return doc["id"] in gt_ids
+
+
+def precision_at_k(results, gt_ids, k):
+    """Fraction of the top-k results that are ground-truth books."""
+    hits = sum(1 for doc in results[:k] if is_ground_truth(doc, gt_ids))
+    return hits / k
+
+
+def recall_at_k(results, gt_ids, k):
+    """Fraction of ground-truth books that appear in the top-k results."""
+    hits = sum(1 for doc in results[:k] if is_ground_truth(doc, gt_ids))
+    return hits / len(gt_ids)
 
 
 def print_results_for_grading(engine, n=5):
@@ -58,29 +70,17 @@ def print_results_for_grading(engine, n=5):
     print("=" * 60)
     print("RETRIEVED RESULTS — assign scores in MANUAL_SCORES")
     print("=" * 60)
-    for query, gt_titles in GROUND_TRUTH.items():
+    for query, gt_ids in GROUND_TRUTH.items():
         print(f"\n> {query}")
-        print(f"  ground truth: {', '.join(gt_titles)}")
+        print(f"  ground truth IDs: {', '.join(gt_ids)}")
         for method, results in [
             ("bm25",     engine.bm25_search(query, n=n)),
             ("semantic", engine.semantic_search(query, top_k=n)),
         ]:
             print(f"\n  {method}:")
             for i, doc in enumerate(results, start=1):
-                label = "[auto=2]" if is_ground_truth(doc["title"], gt_titles) else "[grade me: 0/1/2]"
-                print(f"    rank {i}: {doc['title']} {label}")
-
-
-def precision_at_k(results, gt_titles, k):
-    """Fraction of the top-k results that are ground-truth books."""
-    hits = sum(1 for doc in results[:k] if is_ground_truth(doc["title"], gt_titles))
-    return hits / k
-
-
-def recall_at_k(results, gt_titles, k):
-    """Fraction of ground-truth books that appear in the top-k results."""
-    hits = sum(1 for doc in results[:k] if is_ground_truth(doc["title"], gt_titles))
-    return hits / len(gt_titles)
+                label = "[auto=2]" if is_ground_truth(doc, gt_ids) else "[grade me: 0/1/2]"
+                print(f"    rank {i}: {doc['title']} (id: {doc['id']}) {label}")
 
 
 def evaluate(engine, n=5):
@@ -93,7 +93,7 @@ def evaluate(engine, n=5):
     print("EVALUATION RESULTS")
     print("=" * 60)
 
-    for query, gt_titles in GROUND_TRUTH.items():
+    for query, gt_ids in GROUND_TRUTH.items():
         print(f"\n> {query}")
         for method, results in [
             ("bm25",     engine.bm25_search(query, n=n)),
@@ -104,15 +104,15 @@ def evaluate(engine, n=5):
                 print(f"  {method}: skipped (no manual scores entered yet)")
                 continue
 
-            # use auto=2 for ground-truth matches, manual score for everything else
+            # auto-score ground-truth matches as 2, use manual score for everything else
             scores = [
-                2 if is_ground_truth(doc["title"], gt_titles) else manual[i]
+                2 if is_ground_truth(doc, gt_ids) else manual[i]
                 for i, doc in enumerate(results)
             ]
 
             ndcg_score = ndcg(scores)
-            p_score    = precision_at_k(results, gt_titles, k=n)
-            r_score    = recall_at_k(results, gt_titles, k=n)
+            p_score    = precision_at_k(results, gt_ids, k=n)
+            r_score    = recall_at_k(results, gt_ids, k=n)
 
             all_ndcg[method].append(ndcg_score)
             all_precision[method].append(p_score)
@@ -135,8 +135,8 @@ def evaluate(engine, n=5):
 if __name__ == "__main__":
     engine = BookSearchEngine()
 
-    # run once to see which titles were retrieved, then fill in MANUAL_SCORES above
+    # step 1: run once to see retrieved titles, then fill in MANUAL_SCORES above
     print_results_for_grading(engine, n=5)
 
-    # once scores are filled in, this computes nDCG (skips queries with None)
+    # step 2: once scores are filled in, this computes all metrics (skips queries with None)
     evaluate(engine, n=5)

@@ -3,7 +3,7 @@ from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, util
 
 from preprocess import simple_tokenize
-from index import load_books, build_corpus, build_inverted_index, save_index, load_index
+from index import load_books, build_corpus, build_inverted_index, save_index, load_index, lookup_metadata
 from config import EMBEDDINGS_NPY, INDEX_PICKLE
 
 
@@ -18,11 +18,11 @@ class BookSearchEngine:
     """
 
     def __init__(self):
-        # load books and build corpus
+        # load books and build the document corpus
         books = load_books()
         self.docs = build_corpus(books)
 
-        # load inverted index from cache if available, otherwise build and save
+        # load the inverted index from the pickle cache if it exists, otherwise build and save it
         if INDEX_PICKLE.exists():
             print("Loading index from cache...")
             self.inverted_index, self.document_corpus = load_index()
@@ -30,14 +30,14 @@ class BookSearchEngine:
             self.inverted_index, self.document_corpus = build_inverted_index(self.docs)
             save_index(self.inverted_index, self.document_corpus)
 
-        # BM25 index
+        # build the BM25 index from the tokenized corpus
         tokenized_corpus = [simple_tokenize(doc["text"]) for doc in self.docs]
         self.bm25 = BM25Okapi(tokenized_corpus)
 
-        # load the sentence transformer model
+        # load the sentence transformer model for semantic search
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # encode all documents — load from cache if available to save time
+        # encode all documents into vectors — load from cache if available to save time
         if EMBEDDINGS_NPY.exists():
             print("Loading embeddings from cache...")
             self.doc_embeddings = np.load(EMBEDDINGS_NPY)
@@ -57,6 +57,7 @@ class BookSearchEngine:
         if not query_tokens:
             return []
 
+        # start with all docs containing the first token, then intersect with the rest
         results = set(self.inverted_index.get(query_tokens[0], []))
         for token in query_tokens[1:]:
             results &= set(self.inverted_index.get(token, []))
@@ -71,7 +72,7 @@ class BookSearchEngine:
         return self.bm25.get_top_n(tokenized_query, self.docs, n=n)
 
     def semantic_search(self, query, top_k=5):
-        """Return the top-k semantically similar results for the given query."""
+        """Return the top-k semantically similar results using cosine similarity."""
         query_embedding = self.model.encode(query, convert_to_tensor=True)
         scores = util.cos_sim(query_embedding, self.doc_embeddings)[0]
         top_indices = scores.topk(k=top_k).indices
@@ -79,9 +80,14 @@ class BookSearchEngine:
 
 
 def _format_result(rank, doc):
-    authors = ", ".join(doc["authors"]) if doc["authors"] else "Unknown"
-    year = f" ({doc['year']})" if doc["year"] else ""
-    print(f"  Rank {rank}: {doc['title']} by {authors}{year}")
+    # fetch display metadata from SQLite; fall back to in-memory doc if the DB isn't ready yet
+    try:
+        meta = lookup_metadata(doc["id"]) or doc
+    except Exception:
+        meta = doc
+    authors = ", ".join(meta["authors"]) if meta["authors"] else "Unknown"
+    year = f" ({meta['year']})" if meta["year"] else ""
+    print(f"  Rank {rank}: {meta['title']} by {authors}{year}")
     print(f"           {doc['description'][:100]}...")
 
 
