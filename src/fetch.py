@@ -14,7 +14,7 @@ def load_books(max_results=500):
     csv_files = [f for f in os.listdir(dataset_path) if f.endswith(".csv")]
     csv_path = os.path.join(dataset_path, csv_files[0])
 
-    # read all columns as strings to prevent pandas from mangling ISBNs as floats
+    # read all columns as strings to prevent further mangling during parsing
     df = pd.read_csv(csv_path, on_bad_lines="skip", dtype=str)
     print(f"Loaded {len(df)} rows.")
 
@@ -23,7 +23,6 @@ def load_books(max_results=500):
 
     # rename dataset-specific column names to our standard field names
     rename = {
-        "bookid": "id", "book id": "id", "isbn": "id",
         "author": "authors",
         "desc": "description", "synopsis": "description",
         "genre": "genres",
@@ -32,8 +31,13 @@ def load_books(max_results=500):
     }
     df = df.rename(columns={k: v for k, v in rename.items() if k in df.columns})
 
+    # always use the row index as the document ID — the dataset's ISBN column is unreliable:
+    # pandas reads ISBNs as floats, mangling them into scientific notation (e.g. '9.78074E+12'),
+    # and about 8% of entries collapse to '1E+13' due to float precision loss, making them
+    # non-unique despite the dataset claiming otherwise. a plain integer index is simpler and safe.
+    df["id"] = df.index.astype(str)
+
     # fill in missing columns with empty strings so the rest of the code can assume they exist
-    if "id"      not in df.columns: df["id"]      = df.index.astype(str)
     if "authors" not in df.columns: df["authors"] = ""
     if "year"    not in df.columns: df["year"]    = ""
     if "genres"  not in df.columns: df["genres"]  = ""
@@ -61,7 +65,7 @@ def load_books(max_results=500):
         year = match.group(1) if match else ""
 
         books.append({
-            "id":          str(row["id"]).strip(),
+            "id":          str(row["id"]),
             "title":       str(row["title"]).strip(),
             "description": str(row["description"]).strip(),
             "authors":     parse_list(row.get("authors", "")),

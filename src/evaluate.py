@@ -4,16 +4,16 @@ from search import BookSearchEngine
 # ground-truth book IDs for each query, scored as 2 (highly relevant)
 # run lookup_ids.py to find the correct IDs, then fill them in here
 GROUND_TRUTH = {
-    "dystopian society future":      ["9.78006E+12", "B0064CPN7I"],  # Brave New World, Fahrenheit 451
-    "romance love forbidden":        ["9.78074E+12", "9.78006E+12"],  # Romeo and Juliet, Twilight
-    "mystery detective murder":      ["9.78001E+12", "1E+13"],  # Murder on the Orient Express, The Girl with the Dragon Tattoo
-    "fantasy magic dragon":          ["9.78038E+12", "9.78178E+12"],  # Eragon, A Song of Ice and Fire
-    "coming of age young adult":     ["1E+13", "1E+13"],  # The Perks of Being a Wallflower, The Fault in Our Stars
-    "historical fiction war":        ["9.78038E+12", "9.78148E+12"],  # The Book Thief, All the Light We Cannot See
-    "science fiction aliens":        ["1E+13", "9.78038E+12"],  # The Hitchhiker's Guide to the Galaxy, The War of the Worlds
-    "horror supernatural thriller":  ["9.78045E+12", "9.78006E+12"],  # The Shining, The Exorcist
-    "biography memoir personal":     ["1E+13", "9.78032E+12"],  # The Diary of a Young Girl, Long Walk to Freedom
-    "philosophy meaning life":       ["9.78006E+12", "9.78081E+12"],  # The Alchemist, Man's Search for Meaning
+    "dystopian society future":      ["38", "20"],  # Brave New World, Fahrenheit 451
+    "romance love forbidden":        ["23", "1635"],  # Romeo and Juliet, Twilight
+    "mystery detective murder":      ["203", "78"],  # Murder on the Orient Express, The Girl with the Dragon Tattoo
+    "fantasy magic dragon":          ["113", "1679"],  # Eragon, A Song of Ice and Fire
+    "coming of age young adult":     ["26", "10"],  # The Perks of Being a Wallflower, The Fault in Our Stars
+    "historical fiction war":        ["5", "442"],  # The Book Thief, All the Light We Cannot See
+    "science fiction aliens":        ["11", "516"],  # The Hitchhiker's Guide to the Galaxy, The War of the Worlds
+    "horror supernatural thriller":  ["111", "491"],  # The Shining, The Exorcist
+    "biography memoir personal":     ["266", "1406"],  # The Diary of a Young Girl, Long Walk to Freedom
+    "philosophy meaning life":       ["24", "239"],  # The Alchemist, Man's Search for Meaning
 }
 
 # manual relevance scores for the top-5 results of each query and method
