@@ -1,8 +1,6 @@
 from pathlib import Path
 
-# project root is the directory that contains this file,
-# so all paths work correctly regardless of where you run Python from
-ROOT     = Path(__file__).parent.parent
+ROOT     = Path(__file__).parent.parent # goes up from src/ to ir-books/
 DATA_DIR = ROOT / "data"
 
 BOOKS_JSON     = DATA_DIR / "goodreads_books.json"   # raw book data from fetch.py
