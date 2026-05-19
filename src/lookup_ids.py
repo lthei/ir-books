@@ -1,7 +1,8 @@
 import json
 from config import BOOKS_JSON
 
-# run this script after fetch.py and index.py to find the correct IDs
+# this is a helper script to find the correct IDs for the ground-truth books in evaluate.py;
+# run this script after fetch.py and index.py to easily find the correct IDs
 # for all ground-truth books, then copy the output into evaluate.py
 
 ground_truth = {
@@ -21,7 +22,7 @@ ground_truth = {
 with open(BOOKS_JSON, "r", encoding="utf-8") as f:
     books = json.load(f)
 
-# build a lookup: lowercase title → book, for case-insensitive matching
+# build a lookup: lowercase title -> book, for case-insensitive matching
 title_index = {b["title"].lower(): b for b in books}
 
 
@@ -41,6 +42,6 @@ for query, titles in ground_truth.items():
         else:
             ids.append('"NOT_FOUND"')
             print(f"    # NOT FOUND: {title}")
-            print(f"    #   → search the JSON manually: grep -i \"{title}\" data/goodreads_books.json")
+            print(f"    #   -> search the JSON manually: \"{title}\" data/goodreads_books.json")
     print(f'    "{query}": [{", ".join(ids)}],')
 print("}")

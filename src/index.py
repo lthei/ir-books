@@ -46,7 +46,7 @@ def build_corpus(books):
 
 def build_inverted_index(docs):
     """
-    Build a token → [doc_id, ...] inverted index and an id → doc lookup dict.
+    Build a token -> [doc_id, ...] inverted index and an id -> doc lookup dict.
     We index at the whole-document level — each book is one document.
     Adapted from the lab notebook.
     """
@@ -87,8 +87,9 @@ def build_sqlite_db(books, path=BOOKS_DB):
     We only store display fields here (title, authors, year, genres) — the
     description and search text live in memory since they're only needed at
     search time. Authors and genres are stored as pipe-separated strings
-    because SQLite has no native list type; they're split back on retrieval.
-    Duplicate IDs are skipped since the dataset occasionally has them.
+    because SQLite has no native list type, they're split back on retrieval.
+    Potential duplicate IDs are skipped as a safety measure (though this should 
+    not be an issue with the current dataset since we use the row index as ID).
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
@@ -143,22 +144,6 @@ def lookup_metadata(doc_id, path=BOOKS_DB):
         "year":    row[3],
         "genres":  row[4].split("|") if row[4] else [],
     }
-
-
-def find_ids_by_title(title_fragment, path=BOOKS_DB):
-    """
-    Look up book IDs by a partial, case-insensitive title match.
-    Used by lookup_ids.py to find ground-truth IDs for evaluate.py.
-    """
-    con = sqlite3.connect(path)
-    cur = con.cursor()
-    cur.execute(
-        "SELECT id, title FROM books WHERE LOWER(title) LIKE ?",
-        (f"%{title_fragment.lower()}%",)
-    )
-    rows = cur.fetchall()
-    con.close()
-    return [{"id": row[0], "title": row[1]} for row in rows]
 
 
 if __name__ == "__main__":

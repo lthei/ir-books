@@ -80,7 +80,9 @@ class BookSearchEngine:
 
 
 def _format_result(rank, doc):
-    # fetch display metadata from SQLite; fall back to in-memory doc if the DB isn't ready yet
+    # fetch display metadata from SQLite; safety measure:
+    # fall back to in-memory doc if the DB isn't ready yet
+    # (shouldn't be an issue since the DB is built in index.py)
     try:
         meta = lookup_metadata(doc["id"]) or doc
     except Exception:

@@ -16,7 +16,7 @@ GROUND_TRUTH = {
     "philosophy meaning life":       ["24", "239"],  # The Alchemist, Man's Search for Meaning
 }
 
-# manual relevance scores for the top-5 results of each query and method
+# manual relevance scores for the top-5 results of each query and method (graded relevance)
 # 2 = highly relevant, 1 = somewhat relevant, 0 = not relevant
 # ground-truth books are auto-scored as 2, so you only need to judge the rest
 # run this file once first to see the retrieved titles, then fill these in
@@ -36,7 +36,6 @@ MANUAL_SCORES = {
 
 def dcg(scores):
     """Compute DCG for a ranked list of relevance scores."""
-    # rank is 0-indexed, so we use rank+2 to get log2(2) at rank 0
     return sum(score / np.log2(rank + 2) for rank, score in enumerate(scores))
 
 
