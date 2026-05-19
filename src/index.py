@@ -46,7 +46,7 @@ def build_corpus(books):
 
 def build_inverted_index(docs):
     """
-    Build a token -> [doc_id, ...] inverted index and an id -> doc lookup dict.
+    Build a token → [doc_id, ...] inverted index and an id → doc lookup dict.
     We index at the whole-document level — each book is one document.
     Adapted from the lab notebook.
     """
@@ -87,15 +87,14 @@ def build_sqlite_db(books, path=BOOKS_DB):
     We only store display fields here (title, authors, year, genres) — the
     description and search text live in memory since they're only needed at
     search time. Authors and genres are stored as pipe-separated strings
-    because SQLite has no native list type, they're split back on retrieval.
-    Potential duplicate IDs are skipped as a safety measure (though this should 
-    not be an issue with the current dataset since we use the row index as ID).
+    because SQLite has no native list type; they're split back on retrieval.
+    Duplicate IDs are skipped since the dataset occasionally has them.
     """
     path.parent.mkdir(parents=True, exist_ok=True)
     con = sqlite3.connect(path)
     cur = con.cursor()
 
-    # drop and recreate so re-running index.py always gives a clean database
+    # drop and recreate so re-running setup always gives a clean database
     cur.execute("DROP TABLE IF EXISTS books")
     cur.execute("""
         CREATE TABLE books (
@@ -144,22 +143,3 @@ def lookup_metadata(doc_id, path=BOOKS_DB):
         "year":    row[3],
         "genres":  row[4].split("|") if row[4] else [],
     }
-
-
-if __name__ == "__main__":
-    from rank_bm25 import BM25Okapi
-
-    books = load_books()
-    docs = build_corpus(books)
-    inverted_index, document_corpus = build_inverted_index(docs)
-
-    # save both the pickle index and the SQLite metadata database
-    save_index(inverted_index, document_corpus)
-    build_sqlite_db(books)
-
-    # quick BM25 sanity check
-    tokenized_corpus = [simple_tokenize(doc["text"]) for doc in docs]
-    bm25 = BM25Okapi(tokenized_corpus)
-    results = bm25.get_top_n(simple_tokenize("dystopian society future"), docs, n=3)
-    for i, res in enumerate(results):
-        print(f"Rank {i+1}: {res['title'][:80]}")

@@ -3,8 +3,9 @@ from rank_bm25 import BM25Okapi
 from sentence_transformers import SentenceTransformer, util
 
 from preprocess import simple_tokenize
-from index import load_books, build_corpus, build_inverted_index, save_index, load_index, lookup_metadata
-from config import EMBEDDINGS_NPY, INDEX_PICKLE
+from index import load_books, build_corpus, load_index, lookup_metadata
+from config import EMBEDDINGS_NPY, INDEX_PICKLE, BOOKS_DB
+from queries import QUERIES
 
 
 class BookSearchEngine:
@@ -22,13 +23,12 @@ class BookSearchEngine:
         books = load_books()
         self.docs = build_corpus(books)
 
-        # load the inverted index from the pickle cache if it exists, otherwise build and save it
-        if INDEX_PICKLE.exists():
-            print("Loading index from cache...")
-            self.inverted_index, self.document_corpus = load_index()
-        else:
-            self.inverted_index, self.document_corpus = build_inverted_index(self.docs)
-            save_index(self.inverted_index, self.document_corpus)
+        # load the inverted index — setup.py must be run first to create it
+        if not INDEX_PICKLE.exists():
+            raise FileNotFoundError(
+                f"Index not found at {INDEX_PICKLE}. Run setup.py first."
+            )
+        self.inverted_index, self.document_corpus = load_index()
 
         # build the BM25 index from the tokenized corpus
         tokenized_corpus = [simple_tokenize(doc["text"]) for doc in self.docs]
@@ -37,19 +37,13 @@ class BookSearchEngine:
         # load the sentence transformer model for semantic search
         self.model = SentenceTransformer("all-MiniLM-L6-v2")
 
-        # encode all documents into vectors — load from cache if available to save time
-        if EMBEDDINGS_NPY.exists():
-            print("Loading embeddings from cache...")
-            self.doc_embeddings = np.load(EMBEDDINGS_NPY)
-        else:
-            print("Encoding documents (this may take a while)...")
-            doc_texts = [doc["text"] for doc in self.docs]
-            self.doc_embeddings = self.model.encode(
-                doc_texts, convert_to_numpy=True, show_progress_bar=True
+        # load the pre-computed document embeddings — setup.py must be run first to create them
+        if not EMBEDDINGS_NPY.exists():
+            raise FileNotFoundError(
+                f"Embeddings not found at {EMBEDDINGS_NPY}. Run setup.py first."
             )
-            EMBEDDINGS_NPY.parent.mkdir(parents=True, exist_ok=True)
-            np.save(EMBEDDINGS_NPY, self.doc_embeddings)
-            print(f"Saved embeddings to {EMBEDDINGS_NPY}")
+        print("Loading embeddings from cache...")
+        self.doc_embeddings = np.load(EMBEDDINGS_NPY)
 
     def boolean_search(self, query):
         """AND-Boolean search over the inverted index."""
@@ -80,13 +74,8 @@ class BookSearchEngine:
 
 
 def _format_result(rank, doc):
-    # fetch display metadata from SQLite; safety measure:
-    # fall back to in-memory doc if the DB isn't ready yet
-    # (shouldn't be an issue since the DB is built in index.py)
-    try:
-        meta = lookup_metadata(doc["id"]) or doc
-    except Exception:
-        meta = doc
+    # fetch display metadata from SQLite for a cleaner separation between search and display
+    meta = lookup_metadata(doc["id"]) or doc
     authors = ", ".join(meta["authors"]) if meta["authors"] else "Unknown"
     year = f" ({meta['year']})" if meta["year"] else ""
     print(f"  Rank {rank}: {meta['title']} by {authors}{year}")
@@ -96,20 +85,8 @@ def _format_result(rank, doc):
 if __name__ == "__main__":
     engine = BookSearchEngine()
 
-    queries = [
-        "dystopian society future",
-        "romance love forbidden",
-        "mystery detective murder",
-        "fantasy magic dragon",
-        "coming of age young adult",
-        "historical fiction war",
-        "science fiction aliens",
-        "horror supernatural thriller",
-        "biography memoir personal",
-        "philosophy meaning life",
-    ]
-
-    for query in queries:
+    # queries are imported from queries.py so they only need to be defined in one place
+    for query in QUERIES:
         print(f"\n{'='*60}")
         print(f"> {query}")
 

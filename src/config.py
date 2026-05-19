@@ -1,6 +1,7 @@
 from pathlib import Path
 
-ROOT     = Path(__file__).parent.parent # goes up from src/ to ir-books/
+# project root is the directory that contains this file
+ROOT     = Path(__file__).parent.parent
 DATA_DIR = ROOT / "data"
 
 BOOKS_JSON     = DATA_DIR / "goodreads_books.json"   # raw book data from fetch.py

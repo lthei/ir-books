@@ -1,28 +1,15 @@
 import json
 from config import BOOKS_JSON
+from queries import GROUND_TRUTH_TITLES
 
-# this is a helper script to find the correct IDs for the ground-truth books in evaluate.py;
-# run this script after fetch.py and index.py to easily find the correct IDs
-# for all ground-truth books, then copy the output into evaluate.py
+# run this script after fetch.py and setup.py to find the correct IDs
+# for all ground-truth books, then copy the printed GROUND_TRUTH dict into queries.py
 
-ground_truth = {
-    "dystopian society future":      ["Brave New World", "Fahrenheit 451"],
-    "romance love forbidden":        ["Romeo and Juliet", "Twilight"],
-    "mystery detective murder":      ["Murder on the Orient Express", "The Girl with the Dragon Tattoo"],
-    "fantasy magic dragon":          ["Eragon", "A Song of Ice and Fire"],
-    "coming of age young adult":     ["The Perks of Being a Wallflower", "The Fault in Our Stars"],
-    "historical fiction war":        ["The Book Thief", "All the Light We Cannot See"],
-    "science fiction aliens":        ["The Hitchhiker's Guide to the Galaxy", "The War of the Worlds"],
-    "horror supernatural thriller":  ["The Shining", "The Exorcist"],
-    "biography memoir personal":     ["The Diary of a Young Girl", "Long Walk to Freedom"],
-    "philosophy meaning life":       ["The Alchemist", "Man's Search for Meaning"],
-}
-
-# load the books directly from JSON — IDs are exactly as stored, no database involved
+# load books directly from JSON — IDs are exactly as stored, no database involved
 with open(BOOKS_JSON, "r", encoding="utf-8") as f:
     books = json.load(f)
 
-# build a lookup: lowercase title -> book, for case-insensitive matching
+# build a lowercase title → book lookup for case-insensitive exact matching
 title_index = {b["title"].lower(): b for b in books}
 
 
@@ -31,8 +18,9 @@ def find_book(title):
     return title_index.get(title.lower())
 
 
+print("# copy this into GROUND_TRUTH in queries.py")
 print("GROUND_TRUTH = {")
-for query, titles in ground_truth.items():
+for query, titles in GROUND_TRUTH_TITLES.items():
     ids = []
     for title in titles:
         book = find_book(title)
@@ -42,6 +30,6 @@ for query, titles in ground_truth.items():
         else:
             ids.append('"NOT_FOUND"')
             print(f"    # NOT FOUND: {title}")
-            print(f"    #   -> search the JSON manually: \"{title}\" data/goodreads_books.json")
+            print(f"    #   → search manually: grep -i \"{title}\" ../data/goodreads_books.json")
     print(f'    "{query}": [{", ".join(ids)}],')
 print("}")
