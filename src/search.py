@@ -5,7 +5,7 @@ from sentence_transformers import SentenceTransformer, util
 from preprocess import simple_tokenize
 from index import load_books, build_corpus, load_index, lookup_metadata
 from config import EMBEDDINGS_NPY, INDEX_PICKLE, BOOKS_DB
-from queries import QUERIES
+from queries import QUERY_STRINGS
 
 
 class BookSearchEngine:
@@ -86,7 +86,7 @@ if __name__ == "__main__":
     engine = BookSearchEngine()
 
     # queries are imported from queries.py so they only need to be defined in one place
-    for query in QUERIES:
+    for query in QUERY_STRINGS:
         print(f"\n{'='*60}")
         print(f"> {query}")
 
