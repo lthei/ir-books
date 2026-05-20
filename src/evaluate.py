@@ -5,7 +5,6 @@ from queries import GROUND_TRUTH, MANUAL_SCORES
 
 def dcg(scores):
     """Compute DCG for a ranked list of relevance scores."""
-    # rank is 0-indexed, so we use rank+2 to get log2(2) at rank 0
     return sum(score / np.log2(rank + 2) for rank, score in enumerate(scores))
 
 
