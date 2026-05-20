@@ -8,6 +8,8 @@
 #   manual_scores — relevance scores (0/1/2) for the top-5 retrieved results per method
 #                   run evaluate.py once first to see which titles were retrieved,
 #                   then fill in the scores here (ground-truth books are auto-scored as 2)
+#
+# manual scores: 0 = not relevant, 1 = somewhat relevant, 2 = highly relevant
 
 QUERIES = [
     {

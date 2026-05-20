@@ -45,7 +45,7 @@ class BookSearchEngine:
         print("Loading embeddings from cache...")
         self.doc_embeddings = np.load(EMBEDDINGS_NPY)
 
-    def boolean_search(self, query):
+    def boolean_search(self, query): # adapted from colab notebook
         """AND-Boolean search over the inverted index."""
         query_tokens = simple_tokenize(query)
         if not query_tokens:
@@ -58,14 +58,14 @@ class BookSearchEngine:
 
         return [self.document_corpus[doc_id] for doc_id in results]
 
-    def bm25_search(self, query, n=5):
+    def bm25_search(self, query, n=5): # adapted from colab notebook 
         """Return the top-n BM25-ranked results for the given query."""
         tokenized_query = simple_tokenize(query)
         if not tokenized_query:
             return []
         return self.bm25.get_top_n(tokenized_query, self.docs, n=n)
 
-    def semantic_search(self, query, top_k=5):
+    def semantic_search(self, query, top_k=5): # adapted from colab notebook
         """Return the top-k semantically similar results using cosine similarity."""
         query_embedding = self.model.encode(query, convert_to_tensor=True)
         scores = util.cos_sim(query_embedding, self.doc_embeddings)[0]
