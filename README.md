@@ -14,7 +14,7 @@ ir-books/
 │   └── books.db                # SQLite metadata database
 ├── src/
 │   ├── config.py               # centralized file paths
-│   ├── queries.py              # all queries and ground-truth IDs (single source of truth)
+│   ├── queries.py              # all queries, ground-truth IDs, and manual scores (single source of truth)
 │   ├── fetch.py                # downloads dataset and saves books to JSON
 │   ├── preprocess.py           # tokenizer (lowercase, stopwords, etc.)
 │   ├── index.py                # index-building functions (used as a module, not run directly)
@@ -50,12 +50,12 @@ python fetch.py
 ```
 Downloads the Kaggle dataset via `kagglehub` and saves the cleaned books to `data/goodreads_books.json`. Row indices are used as document IDs instead of ISBNs, which are unreliable in this dataset (pandas reads them as floats, and ~8% collapse to the same value).
 
-**Step 2 — build all indexes:**
+**Step 2 — build all indexes (run after every fetch):**
 
 ```bash
 python setup.py
 ```
-Builds the inverted index (saved as `data/inverted_index.pkl`), the SQLite metadata database (`data/books.db`), and the sentence-transformer embeddings cache (`data/doc_embeddings.npy`). Run this after every `fetch.py`. The embeddings step takes a few minutes on first run.
+Builds the inverted index (data/inverted_index.pkl), the SQLite metadata database (data/books.db), and the sentence-transformer embeddings cache (data/doc_embeddings.npy). The embeddings step takes a few minutes on first run but is cached for subsequent runs.
 
 **Step 3 — run the search engine:**
 
@@ -69,7 +69,7 @@ Loads all indexes and runs the queries defined in `queries.py` through BM25 and 
 ```bash
 python lookup_ids.py
 ```
-Looks up the dataset IDs for all ground-truth books defined in `queries.py` and prints a ready-to-paste `GROUND_TRUTH` dict. Copy the output into `GROUND_TRUTH` in `queries.py`. For any books marked `NOT_FOUND`, search manually in `goodreads_books.json` or with:
+Looks up the dataset IDs for all ground-truth books defined in queries.py and prints a ready-to-paste GROUND_TRUTH dict. Copy the gt_ids values into the corresponding entries in queries.py. For any books marked NOT_FOUND, search manually in goodreads_books.json or with:
 ```bash
 python -c "from lookup_ids import find_book; print(find_book('title fragment'))"
 ```
@@ -78,13 +78,17 @@ python -c "from lookup_ids import find_book; print(find_book('title fragment'))"
 ```bash
 python evaluate.py
 ```
-Prints the top-5 results per query with grading prompts. Fill in the relevance scores (0/1/2) in `MANUAL_SCORES` in `evaluate.py`, then run again to compute nDCG@5, Precision@5, and Recall@5. Ground-truth books are automatically scored as 2.
-Adding or changing queries
-All queries and ground-truth data live in `queries.py`. To add or change a query:
-Update `GROUND_TRUTH`, `QUERIES`, and `GROUND_TRUTH_TITLES` in `queries.py`
-Run `lookup_ids.py` to find IDs for any new ground-truth books
-Add a matching entry to `MANUAL_SCORES` in `evaluate.py`
+Prints the top-5 results per query with grading prompts. Fill in the relevance scores (0/1/2) in the manual_scores field of each query entry in queries.py, then run again to compute nDCG@5, Precision@5, and Recall@5. Ground-truth books are automatically scored as 2.
+
+**Adding or changing queries**
+
+All query data lives in the QUERIES list in queries.py. Each entry contains the query string, ground-truth titles, ground-truth IDs, and manual scores. To add a new query:
+- Add a new entry to QUERIES in queries.py
+- Run lookup_ids.py to find the IDs for the new ground-truth books
+- Fill in gt_ids and manual_scores in the new entry
+
 No other files need to be changed.
+
 ## Indexing
 We index at the whole-document level — each book is one document. The search text field concatenates title, authors, genres (repeated twice for extra weight), and description. Year is stored for display only and excluded from search to avoid date-based ranking bias.
 The index is persisted in two forms:
