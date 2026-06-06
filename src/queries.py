@@ -11,7 +11,7 @@
 #
 # manual scores: 0 = not relevant, 1 = somewhat relevant, 2 = highly relevant
 #
-# note on evaluation validity: ground-truth books are a small, manually chosen subset;
+# note on evaluation validity: the ground-truth books are a small, manually chosen subset;
 # relevance judgements for book search are inherently subjective; metrics should therefore
 # be read comparatively across methods (which method ranks better?), not as absolute quality scores
 
