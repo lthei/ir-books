@@ -120,3 +120,4 @@ if query.strip():
                     if len(desc) > 300:
                         with st.expander("Read more"):
                             st.markdown(desc)
+                            
