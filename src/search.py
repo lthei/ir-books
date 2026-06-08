@@ -45,7 +45,8 @@ class BookSearchEngine:
         print("Loading embeddings from cache...")
         self.doc_embeddings = np.load(EMBEDDINGS_NPY)
 
-    def boolean_search(self, query, expand=True): # adapted from colab notebook
+    # adapted from colab notebook
+    def boolean_search(self, query, expand=False): # note: query expansion does not work for AND-intersection Boolean search
         """AND-Boolean search over the inverted index."""
         if expand:
             query = expand_query(query)
