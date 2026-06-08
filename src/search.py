@@ -60,7 +60,8 @@ class BookSearchEngine:
             results &= set(self.inverted_index.get(token, []))
         return [self.document_corpus[doc_id] for doc_id in results]
 
-    def bm25_search(self, query, n=5, expand=False): # adapted from colab notebook
+    # adapted from colab notebook
+    def bm25_search(self, query, n=5, expand=False): # set expand=True to apply query expansion before searching
         """Return the top-n BM25-ranked results for the given query."""
         if expand:
             query = expand_query(query)
@@ -70,7 +71,8 @@ class BookSearchEngine:
             return []
         return self.bm25.get_top_n(tokenized_query, self.docs, n=n)
 
-    def semantic_search(self, query, top_k=5, expand=False): # adapted from colab notebook
+    # adapted from colab notebook
+    def semantic_search(self, query, top_k=5, expand=False): # set expand=True to apply query expansion before searching
         """Return the top-k semantically similar results using cosine similarity."""
         if expand:
             query = expand_query(query)
@@ -80,25 +82,16 @@ class BookSearchEngine:
         top_indices = scores.topk(k=top_k).indices
         return [self.docs[i] for i in top_indices]
 
-    def rrf_search(self, query, n=5, k=60, expand=False):
-        """Fuse BM25 and semantic rankings using Reciprocal Rank Fusion (RRF).
+    def rrf_search(self, query, n=5, k=60, expand=False): # set expand=True to apply query expansion before searching
+        """Combine BM25 and semantic rankings using Reciprocal Rank Fusion (RRF).
 
-        RRF combines two ranked lists into a single ranking without needing
-        to normalise or calibrate their scores against each other. Each
-        document receives a score of 1 / (k + rank) from each list it appears
-        in, and the scores are summed. Documents that rank highly in both
-        lists end up with a higher combined score than documents that only
-        do well in one.
-
-        The smoothing constant k (default 60, from Cormack et al. 2009)
-        controls how much weight high ranks get relative to lower ones.
-        A larger k flattens the curve; a smaller k amplifies the top ranks.
+        The smoothing constant k is set to 60 by default based on common practice.
         """
         if expand:
             query = expand_query(query)
 
         # retrieve a larger candidate pool than the final n so the fusion
-        # has enough material to re-rank — using n * 3 is a common heuristic
+        # has enough material to re-rank
         pool = max(n * 3, 20)
 
         # expansion is already applied above, so pass the (possibly expanded)
@@ -106,8 +99,7 @@ class BookSearchEngine:
         bm25_results = self.bm25_search(query,    n=pool)
         sem_results  = self.semantic_search(query, top_k=pool)
 
-        # build a {doc_id: rank} lookup for each method (ranks are 1-based
-        # so the lowest rank value = highest relevance, matching the 1/(k+r) formula)
+        # build a {doc_id: rank} lookup for each method
         bm25_ranks = {doc["id"]: rank for rank, doc in enumerate(bm25_results, start=1)}
         sem_ranks  = {doc["id"]: rank for rank, doc in enumerate(sem_results,  start=1)}
 
