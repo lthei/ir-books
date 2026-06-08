@@ -25,12 +25,7 @@ def simple_tokenize(text):
 
 
 def _get_synonyms(word):
-    """Return up to MAX_SYNONYMS_PER_TOKEN WordNet synonyms for a single word.
-
-    We iterate over every synset the word appears in and collect lemma names.
-    Multi-word lemmas (e.g. 'private_detective') are skipped because the rest
-    of the pipeline treats the query as a flat token list.
-    """
+    """Return up to MAX_SYNONYMS_PER_TOKEN WordNet synonyms for a single word."""
     synonyms = []
     seen = set()
 
@@ -60,17 +55,7 @@ def _get_synonyms(word):
 
 
 def expand_query(query):
-    """Append WordNet synonyms to a query string and return the expanded version.
-
-    The original query is left intact — synonyms are only appended at the end.
-    This means the function is safe to use as a drop-in preprocessing step
-    before any of the three search methods: it makes the query broader without
-    changing what the original tokens match.
-
-    Example:
-        expand_query("mystery detective")
-        → "mystery detective whodunit sleuthing"
-    """
+    """Append WordNet synonyms to a query string and return the expanded version."""
     # tokenise the query the same way simple_tokenize does, so we only
     # expand tokens that would actually reach the index / BM25 / encoder
     text = query.lower()

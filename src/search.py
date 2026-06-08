@@ -45,7 +45,7 @@ class BookSearchEngine:
         print("Loading embeddings from cache...")
         self.doc_embeddings = np.load(EMBEDDINGS_NPY)
 
-    def boolean_search(self, query, expand=False): # adapted from colab notebook
+    def boolean_search(self, query, expand=True): # adapted from colab notebook
         """AND-Boolean search over the inverted index."""
         if expand:
             query = expand_query(query)
@@ -61,7 +61,7 @@ class BookSearchEngine:
         return [self.document_corpus[doc_id] for doc_id in results]
 
     # adapted from colab notebook
-    def bm25_search(self, query, n=5, expand=False): # set expand=True to apply query expansion before searching
+    def bm25_search(self, query, n=5, expand=True): # set expand=True to apply query expansion before searching
         """Return the top-n BM25-ranked results for the given query."""
         if expand:
             query = expand_query(query)
@@ -72,7 +72,7 @@ class BookSearchEngine:
         return self.bm25.get_top_n(tokenized_query, self.docs, n=n)
 
     # adapted from colab notebook
-    def semantic_search(self, query, top_k=5, expand=False): # set expand=True to apply query expansion before searching
+    def semantic_search(self, query, top_k=5, expand=True): # set expand=True to apply query expansion before searching
         """Return the top-k semantically similar results using cosine similarity."""
         if expand:
             query = expand_query(query)
@@ -82,7 +82,7 @@ class BookSearchEngine:
         top_indices = scores.topk(k=top_k).indices
         return [self.docs[i] for i in top_indices]
 
-    def rrf_search(self, query, n=5, k=60, expand=False): # set expand=True to apply query expansion before searching
+    def rrf_search(self, query, n=5, k=60, expand=True): # set expand=True to apply query expansion before searching
         """Combine BM25 and semantic rankings using Reciprocal Rank Fusion (RRF).
 
         The smoothing constant k is set to 60 by default based on common practice.
